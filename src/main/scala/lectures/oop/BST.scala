@@ -33,14 +33,31 @@ trait BST {
 }
 
 case class BSTImpl(value: Int,
-                   left: Option[BSTImpl] = None,
-                   right: Option[BSTImpl] = None) extends BST {
+                   left: Option[BST] = None,
+                   right: Option[BST] = None) extends BST {
 
-  def add(newValue: Int): BST = ???
+  def add(newValue: Int): BST =
+    if (newValue > value)
+      right match {
+        case Some(r) => BSTImpl(value, left, Some(r.add(newValue)))
+        case None => BSTImpl(value, left, Some(BSTImpl(newValue)))
+      }
+    else if (newValue < value)
+      left match {
+        case Some(l) => BSTImpl(value, Some(l.add(newValue)), right)
+        case None => BSTImpl(value, Some(BSTImpl(newValue)), right)
+      } else this
 
-  def find(value: Int): Option[BST] = ???
+  def find(value: Int): Option[BST] =
+    if (value > this.value) right match {
+      case Some(rightTree) => rightTree.find(value)
+      case None => None
+    } else if (value < this.value) left match {
+      case Some(leftTree) => leftTree.find(value)
+      case None => None
+    } else Some(this)
 
-  // override def toString() = ???
+  override def toString = "(" + left.getOrElse(".") + value + right.getOrElse(".") + ")"
 
 }
 
@@ -56,7 +73,7 @@ object TreeTest extends App {
 
   // Generate huge tree
   val root: BST = BSTImpl(maxValue / 2)
-  val tree: BST = ??? // generator goes here
+  val tree: BST = (1 to nodesCount).foldLeft(root)(_ add _) // generator goes here
 
   // add marker items
   val testTree = tree.add(markerItem).add(markerItem2).add(markerItem3)
