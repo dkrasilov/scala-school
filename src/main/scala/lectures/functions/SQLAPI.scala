@@ -37,12 +37,18 @@ class SQLAPI(resource: String) {
 
   }
 
-  private def logParameter[T](prm: T): T  = ???
+  private def logParameter[T](prm: T): T = {
+    println(prm)
+    prm
+  }
 
-  val connection = (resource: String) => Connection(resource)
+  val connection: (String) => Connection = (resource: String) => Connection(resource)
 
-  def execute(sql: String): String = ??? // use resource from constructor
+  def execute(sql: String): String = logParameter(connection(logParameter(resource)).open() execute logParameter(sql))
 
+  def execute2(sql: String): String = logParameter {
+    openConnection(connection(logParameter(resource)))(logParameter(sql))
+  }
 
   def openConnection(connection: Connection): (String) => String =
     (sql: String) => {
@@ -54,5 +60,6 @@ class SQLAPI(resource: String) {
 object SQLCheck extends App {
 
   new SQLAPI("some DB").execute("some SQL")
+  new SQLAPI("some DB").execute2("some SQL")
 
 }
