@@ -50,6 +50,12 @@ class SQLAPI(resource: String) {
     openConnection(connection(logParameter(resource)))(logParameter(sql))
   }
 
+  def execute3(sql: String): String =
+    openConnection(
+      (logParameter[String] _ andThen connection) (resource))
+      .andThen(logParameter[String])
+      .compose(logParameter[String])(sql)
+
   def openConnection(connection: Connection): (String) => String =
     (sql: String) => {
       connection.open execute sql
@@ -61,5 +67,6 @@ object SQLCheck extends App {
 
   new SQLAPI("some DB").execute("some SQL")
   new SQLAPI("some DB").execute2("some SQL")
+  new SQLAPI("some DB").execute3("some SQL")
 
 }
