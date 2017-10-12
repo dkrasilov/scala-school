@@ -23,21 +23,17 @@ package lectures.collections.comprehension
 case class Traffic(degree: Double)
 
 object Courier {
-  def couriers(courierCount: Int): List[Courier] =
-    (for (i <- 1 to courierCount) yield {
-      Courier(i)
-    }).toList
+  def couriers(courierCount: Int): List[Courier] = (courierCount to 1 by -1).foldLeft(List[Courier]())((list, num) => Courier(num) :: list)
 }
 
 case class Courier(index: Int) {
-  val canServe = (Math.random() * 10).toInt
+  val canServe: Int = (Math.random() * 10).toInt
+
+  override def toString = "Courier(index:" + index + ", canServe:" + canServe + ")"
 }
 
 object Address {
-  def addresses(addressesCount: Int): List[Address] =
-    (for (i <- 1 to addressesCount) yield {
-      Address(s"$i$i$i")
-    }).toList
+  def addresses(addressesCount: Int): List[Address] = (1 to addressesCount).map(x => Address(s"$x$x$x")).toList
 }
 
 case class Address(postIndex: String)
@@ -51,27 +47,33 @@ object CouriersWithComprehension extends App {
   val addressesCount = sc.nextInt()
   val courierCount = sc.nextInt()
   val addrs = addresses(addressesCount)
+  println("Adresses: " + addrs)
   val cours = couriers(courierCount)
+  println("Couriers: " + cours)
 
   // какие адреса были обслужены
-  def serveAddresses(addresses: List[Address], couriers: List[Courier]) = {
-    var accum = 0
-    for (courier <- couriers;
-         trafficDegree = traffic().degree;
-         t <- 0 until courier.canServe if trafficDegree < 5 && accum < addresses.length
-    ) yield {
-      val addr = addresses(accum)
-      accum = accum + 1
-      addr
-    }
-  }
+  def serveAddresses(addresses: List[Address], couriers: List[Courier]): List[Address] =
+    addresses.take(
+      couriers.filter(_ => traffic().degree < 5).foldLeft(0)(_ + _.canServe)
+    )
 
-  def traffic(): Traffic = new Traffic(Math.random() * 10)
+  // old version
+  //  {
+  //    var accum = 0
+  //    for (courier <- couriers;
+  //         trafficDegree = traffic().degree;
+  //         t <- 0 until courier.canServe if trafficDegree < 5 && accum < addresses.length
+  //    ) yield {
+  //      val addr = addresses(accum)
+  //      accum = accum + 1
+  //      addr
+  //    }
+  //  }
 
-  def printServedAddresses(addresses: List[Address], couriers: List[Courier]) =
-    for (a <- serveAddresses(addresses, couriers)) {
-      println(a.postIndex)
-    }
+  def traffic(): Traffic = Traffic(Math.random() * 10)
+
+  def printServedAddresses(addresses: List[Address], couriers: List[Courier]): Unit =
+    serveAddresses(addresses, couriers).foreach(x => println(x.postIndex))
 
   printServedAddresses(addrs, cours)
 
