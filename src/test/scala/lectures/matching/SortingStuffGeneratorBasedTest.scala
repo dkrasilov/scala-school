@@ -1,6 +1,6 @@
 package lectures.matching
 
-import lectures.matching.SortingStuff.{Book, StuffBox, Watches}
+import lectures.matching.SortingStuff.{Book, Knife, StuffBox, Watches, Boots}
 import org.scalacheck.Gen
 import org.scalatest.prop.PropertyChecks
 import org.scalatest.{Matchers, WordSpec}
@@ -34,6 +34,9 @@ class SortingStuffGeneratorBasedTest extends WordSpec with Matchers with Propert
   val cheepWatchGen: Gen[Watches] = Gen.zip(Gen.choose(0f, 1000f), Gen.alphaStr).map(w => Watches(w._2, w._1))
   val bookGenerator = Gen.alphaStr.map(name => Book(name, Random.nextBoolean()))
   val interestingBookGen = bookGenerator.filter(_.isInteresting)
+  val knifeGenerator = Gen.option(Knife)
+  val bootsGenerator = Gen.oneOf("Adidas", "Converse", "Noname").map(brand => Boots(brand))
+  val coolBootsGen = bootsGenerator.filter(boot => List("Adidas", "Converse") contains boot.brand)
 
   // Override configuration if you need
   implicit override val generatorDrivenConfig: PropertyCheckConfiguration =
@@ -44,6 +47,7 @@ class SortingStuffGeneratorBasedTest extends WordSpec with Matchers with Propert
   "This test" should get {
     "proper cheep watch generator" in {
       forAll(cheepWatchGen) { (watch: Watches) => {
+        println(watch)
         watch.cost should be <= 1000f
       }
       }
@@ -51,15 +55,32 @@ class SortingStuffGeneratorBasedTest extends WordSpec with Matchers with Propert
     "proper interesting book generator" in {
       val books = interestingBookGen
       forAll(books) { (book: Book) => {
+        println(book)
         book shouldBe 'interesting
       }
+      }
+    }
+    "proper cool boots generator" in {
+      val boots = coolBootsGen
+      forAll(boots) { (boot: Boots) => {
+        println(boot)
+        boot.brand should fullyMatch regex "(Adidas|Converse)"
+      }
+      }
+    }
+
+
+    "proper knife generator" in {
+      val knifes = knifeGenerator
+      forAll(knifes) { (knife: Option[Knife.type]) =>
+        println(knife)
       }
     }
   }
 
   "Sort stuff" should {
     "return collections" which {
-      "total size is equal to item amount" in pendingUntilFixed{
+      "total size is equal to item amount" in {
         val ms = generatorDrivenConfig.minSuccessful
 
         val books = (1 to ms) flatMap { _ => interestingBookGen.sample }
@@ -72,11 +93,24 @@ class SortingStuffGeneratorBasedTest extends WordSpec with Matchers with Propert
       }
     }
     "find knife" which {
-      "was occasionally disposed" in pending
+      "was occasionally disposed" in {
+        val knifes = knifeGenerator
+        forAll(knifes) { (knife: Option[Knife.type]) =>
+          if (knife.isEmpty)
+            SortingStuff.findMyKnife(SortingStuff.sortJunk(List())) shouldBe false
+          else
+            SortingStuff.findMyKnife(SortingStuff.sortJunk(List(knife.get))) shouldBe true
+        }
+      }
     }
 
     "put boots in a proper place" when {
-      "boots were produced by Converse or Adidas" in pending
+      "boots were produced by Converse or Adidas" in {
+        val boots = (1 to generatorDrivenConfig.minSize) flatMap (_ => coolBootsGen.sample)
+        val StuffBox(_, _, coolBoots, _) = SortingStuff.sortJunk(boots.toList)
+
+        coolBoots should have size boots.size
+      }
     }
   }
 }

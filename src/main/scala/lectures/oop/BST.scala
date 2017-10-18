@@ -1,5 +1,7 @@
 package lectures.oop
 
+import org.jboss.netty.handler.codec.http.HttpChunkAggregator
+
 
 /**
   * BSTImpl - это бинарное дерево поиска, содержащее только значения типа Int
@@ -30,6 +32,8 @@ trait BST {
   def add(newValue: Int): BST
 
   def find(value: Int): Option[BST]
+
+  def fold(aggregator: Int)(f: (Int, Int) => Int): Int
 }
 
 case class BSTImpl(value: Int,
@@ -57,7 +61,14 @@ case class BSTImpl(value: Int,
       case None => None
     } else Some(this)
 
-  override def toString = "(" + left.getOrElse(".") + value + right.getOrElse(".") + ")"
+  def fold(aggregator: Int)(f: (Int, Int) => Int): Int = (left, right) match {
+    case (None, None) => f(aggregator, value)
+    case (Some(l: BSTImpl), None) => l.fold(f(aggregator, value))(f)
+    case (None, Some(r: BSTImpl)) => r.fold(f(aggregator, value))(f)
+    case (Some(l: BSTImpl), Some(r: BSTImpl)) => r.fold(l.fold(f(aggregator, value))(f))(f)
+  }
+
+  override def toString: String = "(" + left.getOrElse(".") + value + right.getOrElse(".") + ")"
 
 }
 
@@ -74,6 +85,9 @@ object TreeTest extends App {
   // Generate huge tree
   val root: BST = BSTImpl(maxValue / 2)
   val tree: BST = (1 to nodesCount).foldLeft(root)(_ add _) // generator goes here
+
+  println(tree)
+  println(tree.fold(0)(_ + _))
 
   // add marker items
   val testTree = tree.add(markerItem).add(markerItem2).add(markerItem3)
