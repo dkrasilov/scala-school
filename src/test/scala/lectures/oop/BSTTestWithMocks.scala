@@ -37,7 +37,7 @@ class BSTTestWithMocks extends WordSpec with Matchers with MockitoSugar with Bef
         w(bstSUT.find(10)).thenReturn(Some(bstSUT))
 
         bstSUT.find(1) shouldBe None
-        bstSUT.find(10) should be === Some(bstSUT)
+        bstSUT.find(10) should be equals Some(bstSUT)
         info("verify that we have executed find method for at least once")
         verify(bstSUT, atLeastOnce()).find(any[Int]()) // never, atLeast, calls..  are also available
       }
