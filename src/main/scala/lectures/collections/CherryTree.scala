@@ -13,11 +13,7 @@ sealed trait CherryTree[+T] extends LinearSeq[T]
 
   override def last: T = super.last
 
-  override def apply(n: Int) = this match {
-    case CherryNil =>
-    case CherrySingle(x) =>
-    case CherryBranch(left, inner, right) =>
-  }
+  override def apply(n: Int): T
 
   def append[S >: T](x: S): CherryTree[S]
 
@@ -50,6 +46,8 @@ case object CherryNil extends CherryTree[Nothing] {
 
   override def tail = throw new UnsupportedOperationException("tail of empty CherryList")
 
+  override def apply(n: Int): Nothing = throw new NoSuchElementException("cannot apply empty CherryList")
+
   override def foreach[U](f: (Nothing) => U): Unit = ()
 
   override def append[S >: Nothing](x: S): CherryTree[S] = CherrySingle(x)
@@ -63,6 +61,10 @@ final case class CherrySingle[+T](x: T) extends CherryTree[T] {
   override def head: T = x
 
   override def tail: CherryNil.type = CherryNil
+
+  override def apply(n: Int): T =
+    if (n == 0) x
+    else throw new NoSuchElementException("no element with index " + n + "in singleton tree")
 
   override def foreach[U](f: T => U): Unit = f(x)
 
@@ -90,13 +92,36 @@ final case class CherryBranch[+T](left: Node[T], inner: CherryTree[Node2[T]], ri
     case Node2(_, x) => CherryBranch(Node1(x), inner, right)
   }
 
+  override def apply(n: Int): T = (n, size) match {
+    case _ if n > size => throw new IndexOutOfBoundsException("no element with index " + n)
+    case (1, _) => left match {
+      case Node1(x) => x
+      case Node2(x, _) => x
+    }
+    case (2, _) => left match {
+      case Node1(_) => inner.head.x
+      case Node2(_, y) => y
+    }
+    case _ if n == size - 1 => right match {
+      case Node1(x) => x
+      case Node2(_, y) => y
+    }
+    case _ if n == size - 2 =>
+    case _ => //could not find inherited objects or case classes
+  }
+
   override def foreach[U](f: T => U) = {
     left.foreach(f)
     inner.foreach(_.foreach(f))
     right.foreach(f)
   }
 
-  def append[S >: T](x: S) = right match {
+  override def prepend[S >: T](elem: S) = left match {
+    case Node1(x) => CherryBranch(Node2(elem, x), inner, right)
+    case n: Node2[S] => CherryBranch(Node1(elem), inner.prepend(n), right)
+  }
+
+  override def append[S >: T](x: S) = right match {
     case Node1(y) => CherryBranch(left, inner, Node2(y, x))
     case n: Node2[S] => CherryBranch(left, inner.append(n), Node1(x))
   }
