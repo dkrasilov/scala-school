@@ -12,11 +12,10 @@ sealed trait CherryTree[+T] extends LinearSeq[T] with LinearSeqOptimized[T, Cher
   override def last: T = super.last
 
   override def apply(n: Int): T
+
   def append[S >: T](x: S): CherryTree[S]
-
   def prepend[S >: T](x: S): CherryTree[S]
-
-  def concat[S >: T](xs: CherryTree[S]): CherryTree[S] = ???
+  def concat[S >: T](xs: CherryTree[S]): CherryTree[S]
 
   override def toString(): String = super.toString()
 
@@ -120,26 +119,21 @@ final case class CherryBranch[+T](left: Node[T], inner: CherryTree[Node2[T]], ri
     case Node2(_, y) => y
   }
 
-//  override def apply(n: Int): T = (n, size) match {
-//    case _ if n > size => throw new IndexOutOfBoundsException("no element with index " + n)
-//    case (1, _) => left match {
-//      case Node1(x) => x
-//      case Node2(x, _) => x
-//    }
-//    case (2, _) => left match {
-//      case Node1(_) => inner.head.x
-//      case Node2(_, y) => y
-//    }
-//    case _ if n == size - 1 => right match {
-//      case Node1(x) => x
-//      case Node2(_, y) => y
-//    }
-//    case _ if n == size - 2 => right match {
-//      case Node1(x) => inner.last.y
-//      case Node2(x, _) => x
-//    }
-//    case _ => inner.app
-//  }
+  override def apply(n: Int): T = n match {
+    case outOfBound if n >= size || n < 0 => throw new IndexOutOfBoundsException("no element with index " + outOfBound)
+    case leftIndex if n < left.size => left match {
+      case Node1(x) => x
+      case Node2(x, y) => if (leftIndex == 0) x else y
+    }
+    case _ if n >= left.size + inner.size => right match {
+      case Node1(x) => x
+      case Node2(x, y) => if (n - (left.size + inner.size) == 0) x else y
+    }
+    case _ =>
+      val innerIndex = n - left.size
+      val node = inner.apply(innerIndex / 2)
+      if (innerIndex % 2 == 0) node.x else node.y
+  }
 
   override def foreach[U](f: T => U): Unit = {
     left.foreach(f)
@@ -158,10 +152,14 @@ final case class CherryBranch[+T](left: Node[T], inner: CherryTree[Node2[T]], ri
   }
 
 
-  override def concat[S >: T](xs: CherryTree[S]): CherryBranch[S] = xs match {
+  override def concat[S >: T](xs: CherryTree[S]): CherryTree[S] = xs match {
     case CherryNil => this
     case CherrySingle(x) => this.append(x)
-    case CherryBranch(left, inner, right) =>
+    case that: CherryBranch[S] =>
+      if (this.size < that.size)
+        this.init concat (that prepend this.last)
+      else
+        (this append that.head) concat that.tail
   }
 
   override def size: Int = left.size + inner.size * 2 + right.size
